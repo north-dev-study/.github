@@ -1,17 +1,19 @@
 # 🚀 Team Dashboard
 
-## Team Grass
+## 🌱 Organization Commit Activity
 
-# 🌱 Our Developers
+### 김민석 · [@FireCurry](https://github.com/FireCurry)
 
-## 개발자 A
+![FireCurry Organization Commits](./contributions/FireCurry.svg)
 
-[![개발자 A의 GitHub 잔디](https://ghchart.xqsit94.in/yerinalee)](https://github.com/yerinalee)
+---
 
-## 개발자 B
+### yeri · [@yerinaLee](https://github.com/yerinaLee)
 
-[![개발자 B의 GitHub 잔디](https://ghchart.xqsit94.in/GITHUB_USERNAME_B)](https://github.com/GITHUB_USERNAME_B)
+![yerinaLee Organization Commits](./contributions/yerinaLee.svg)
 
-## 개발자 C
+---
 
-[![개발자 C의 GitHub 잔디](https://ghchart.xqsit94.in/GITHUB_USERNAME_C)](https://github.com/GITHUB_USERNAME_C)
+### yoojin · [@yj2695](https://github.com/yj2695)
+
+![yj2695 Organization Commits](./contributions/yj2695.svg)
