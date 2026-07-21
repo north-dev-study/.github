@@ -19,7 +19,7 @@ USERS = [
 # 저장소 루트를 기준으로 SVG가 생성됩니다.
 OUTPUT_DIR = Path("profile/contributions")
 
-# 기본 브랜치의 커밋만 집계합니다.
+# 저장소의 현재 모든 브랜치에 존재하는 커밋을 집계합니다.
 # Fork/보관 저장소를 포함하려면 아래 값을 True로 변경하세요.
 INCLUDE_FORKS = False
 INCLUDE_ARCHIVED = False
@@ -117,12 +117,44 @@ def get_org_repositories() -> list[dict[str, Any]]:
     return repositories
 
 
+def get_repository_branches(repository: dict[str, Any]) -> list[str]:
+    """저장소의 현재 브랜치 이름을 모두 가져옵니다."""
+    branches: list[str] = []
+    page = 1
+
+    while True:
+        response = github_get(
+            f"{API_ROOT}/repos/{ORG}/{repository['name']}/branches",
+            params={
+                "per_page": 100,
+                "page": page,
+            },
+        )
+
+        if response.status_code == 409:
+            return []
+
+        items = response.json()
+        if not items:
+            break
+
+        branches.extend(item["name"] for item in items)
+
+        if len(items) < 100:
+            break
+        page += 1
+
+    return branches
+
+
 def get_user_commits(
     repository: dict[str, Any],
+    branch_name: str,
     username: str,
     since: str,
     until: str,
 ) -> list[dict[str, Any]]:
+    """특정 브랜치에서 특정 사용자의 커밋을 가져옵니다."""
     commits: list[dict[str, Any]] = []
     page = 1
 
@@ -130,7 +162,7 @@ def get_user_commits(
         response = github_get(
             f"{API_ROOT}/repos/{ORG}/{repository['name']}/commits",
             params={
-                # sha를 생략하면 저장소의 기본 브랜치를 조회합니다.
+                "sha": branch_name,
                 "author": username,
                 "since": since,
                 "until": until,
@@ -181,29 +213,34 @@ def count_commits_by_date(
 
     for repository in repositories:
         repo_name = repository["name"]
-        print(f"  - {repo_name} 조회 중...")
+        branches = get_repository_branches(repository)
+        print(f"  - {repo_name}: {len(branches)}개 브랜치 조회 중...")
 
-        commits = get_user_commits(
-            repository=repository,
-            username=username,
-            since=since,
-            until=until,
-        )
-
-        # 같은 저장소의 같은 커밋이 페이지 처리 등으로 중복되는 상황을 방지합니다.
+        # 같은 커밋이 main과 개인 브랜치에 동시에 존재할 수 있으므로
+        # 저장소 단위로 SHA를 한 번만 계산합니다.
         seen_shas: set[str] = set()
-        for commit in commits:
-            sha = commit.get("sha")
-            if sha and sha in seen_shas:
-                continue
-            if sha:
-                seen_shas.add(sha)
 
-            commit_info = commit.get("commit", {})
-            author_info = commit_info.get("author") or commit_info.get("committer") or {}
-            committed_at = author_info.get("date")
-            if committed_at:
-                counts[committed_at[:10]] += 1
+        for branch_name in branches:
+            commits = get_user_commits(
+                repository=repository,
+                branch_name=branch_name,
+                username=username,
+                since=since,
+                until=until,
+            )
+
+            for commit in commits:
+                sha = commit.get("sha")
+                if sha and sha in seen_shas:
+                    continue
+                if sha:
+                    seen_shas.add(sha)
+
+                commit_info = commit.get("commit", {})
+                author_info = commit_info.get("author") or commit_info.get("committer") or {}
+                committed_at = author_info.get("date")
+                if committed_at:
+                    counts[committed_at[:10]] += 1
 
     return counts
 
